@@ -47,7 +47,7 @@ Mesh* GameEntity::GetMesh()
     return entitysMesh;
 }
 
-Transform* GameEntity::getTransform()
+Transform* GameEntity::GetTransform()
 {
     return &entitysTransform;
 }

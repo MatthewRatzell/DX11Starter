@@ -54,9 +54,14 @@ Game::~Game()
 	// we don't need to explicitly clean up those DirectX objects
 	// - If we weren't using smart pointers, we'd need
 	//   to call Release() on each DirectX object created in Game
-
+	// ImGui clean up
+	ImGui_ImplDX11_Shutdown();
+	ImGui_ImplWin32_Shutdown();
+	ImGui::DestroyContext();
 	//make sure we offload our entities in our constructor
 	for (auto& e : listOfEntitys) { delete e; }
+
+
 }
 // --------------------------------------------------------
 // Called once per program, after DirectX and the window
@@ -64,7 +69,8 @@ Game::~Game()
 // --------------------------------------------------------
 void Game::Init()
 {
-
+	//gui
+	initImGui();
 	//load our shaders and connect them to their correct files
 	LoadShaders();
 
@@ -88,25 +94,114 @@ void Game::Init()
 	LoadLights();
 
 }
-void Game::initImGui()
-{
-	// Initialize ImGui
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	// Pick a style (uncomment one of these 3)
-	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsLight();
-	//ImGui::StyleColorsClassic();
-	// Setup Platform/Renderer backends
-	ImGui_ImplWin32_Init(hWnd);
-	ImGui_ImplDX11_Init(device.Get(), context.Get());
+void Game::makeImGui(float dt) {
 
+
+	//grab the jimmy jawn pizza from pizzi hut 
+	Input& input = Input::GetInstance();
+
+	input.SetGuiKeyboardCapture(false);
+	input.SetGuiMouseCapture(false);
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.DeltaTime = dt;
+	io.DisplaySize.x = (float)this->width;
+	io.DisplaySize.y = (float)this->height;
+	io.KeyCtrl = input.KeyDown(VK_CONTROL);
+	io.KeyShift = input.KeyDown(VK_SHIFT);
+	io.KeyAlt = input.KeyDown(VK_MENU);
+	io.MousePos.x = (float)input.GetMouseX();
+	io.MousePos.y = (float)input.GetMouseY();
+	io.MouseDown[0] = input.MouseLeftDown();
+	io.MouseDown[1] = input.MouseRightDown();
+	io.MouseDown[2] = input.MouseMiddleDown();
+	io.MouseWheel = input.GetMouseWheel();
+	input.GetKeyArray(io.KeysDown, 256);
+	// Reset the frame
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+	// Determine new input capture (you’ll uncomment later)
+	input.SetGuiKeyboardCapture(io.WantCaptureKeyboard);
+	input.SetGuiMouseCapture(io.WantCaptureMouse);
+
+	// Combined into a single window
+	ImGui::Begin("Debug");
+
+	//make a lights div
+	if (ImGui::CollapsingHeader("Lights"))
+	{
+		//go through the vector of lights and produce the UI and controls for each one
+		for (int i = 0; i < lights.size(); i++)
+		{
+			SetUpLightUI(lights[i], i);
+		}
+	}
+
+	// All scene entities
+	if (ImGui::CollapsingHeader("Entities"))
+	{
+
+		for (int i = 0; i < listOfEntitys.size(); i++)
+		{
+			SetUpEntityUI(listOfEntitys[i], i);
+		}
+	}
+
+	ImGui::End();
+
+}
+
+void Game::SetUpEntityUI(GameEntity* gameEntity, int index) {
+
+
+	std::string indexStr = std::to_string(index);
+
+	std::string nodeName = "Entity " + indexStr;
+
+	if (ImGui::TreeNode(nodeName.c_str()))
+	{
+		// Transform -----------------------
+		if (ImGui::CollapsingHeader("Transform"))
+		{
+			Transform* transform = gameEntity->GetTransform();
+
+			//grab their initial values so we can have our sliders start at the right value 
+			XMFLOAT3 pos = transform->GetPosition();
+			XMFLOAT3 rot = transform->GetRotation();
+			XMFLOAT3 scale = transform->GetScale();
+
+			//create three unique names so that our sliders all have a different name
+			std::string posID = "PositionOfEntity##" + indexStr;
+			std::string pyrID = "PitchYaWRollOfEntity##" + indexStr;
+			std::string scaleID = "ScaleOfEntity##" + indexStr;
+			//create position slider
+			if (ImGui::DragFloat3(posID.c_str(), &pos.x, 0.1f))
+			{
+				//make sure we actually set the position because this isnt lical
+				transform->SetPosition(pos.x, pos.y, pos.z);
+			}
+
+			if (ImGui::DragFloat3(pyrID.c_str(), &rot.x, 0.1f))
+			{
+				transform->SetRotation(rot.x, rot.y, rot.z);
+			}
+
+			if (ImGui::DragFloat3(scaleID.c_str(), &scale.x, 0.1f, 0.0f))
+			{
+				transform->SetScale(scale.x, scale.y, scale.z);
+			}
+		}
+		ImGui::TreePop();
+	}
 }
 // --------------------------------------------------------
 // Update your game here - user input, move objects, AI, etc.
 // --------------------------------------------------------
 void Game::Update(float deltaTime, float totalTime)
 {
+
+	makeImGui(deltaTime);
 	// Example input checking: Quit if the escape key is pressed
 	if (Input::GetInstance().KeyDown(VK_ESCAPE))
 		Quit();
@@ -158,6 +253,9 @@ void Game::Draw(float deltaTime, float totalTime)
 		skyObj->Draw(context, camera);
 	}
 
+	// Draw ImGui
+	ImGui::Render();
+	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 
 	// Present the back buffer to the user
 	//  - Puts the final frame we're drawing into the window so the user can see it
@@ -176,6 +274,20 @@ void Game::Draw(float deltaTime, float totalTime)
 //    be verified against vertex shader byte code
 // - We'll have that byte code already loaded below
 // --------------------------------------------------------
+void Game::initImGui()
+{
+	// Initialize ImGui
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	// Pick a style (uncomment one of these 3)
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsLight();
+	//ImGui::StyleColorsClassic();
+	// Setup Platform/Renderer backends
+	ImGui_ImplWin32_Init(hWnd);
+	ImGui_ImplDX11_Init(device.Get(), context.Get());
+
+}
 void Game::LoadShaders()
 {
 	vertexShader = std::make_shared<SimpleVertexShader>(device, context, GetFullPathTo_Wide(L"VertexShader.cso").c_str());
@@ -333,11 +445,11 @@ void Game::CreateEntitys()
 	listOfEntitys.push_back(entityFive);
 
 	//making sure we put them in a good spot
-	listOfEntitys[0]->getTransform()->SetPosition(0, 0, 0);
-	listOfEntitys[1]->getTransform()->SetPosition(-2.5, 0, 0);
-	listOfEntitys[2]->getTransform()->SetPosition(2.5, 0, 0);
-	listOfEntitys[3]->getTransform()->SetPosition(-5.5, 0, 0);
-	listOfEntitys[4]->getTransform()->SetPosition(5.5, 0, 0);
+	listOfEntitys[0]->GetTransform()->SetPosition(0, 0, 0);
+	listOfEntitys[1]->GetTransform()->SetPosition(-2.5, 0, 0);
+	listOfEntitys[2]->GetTransform()->SetPosition(2.5, 0, 0);
+	listOfEntitys[3]->GetTransform()->SetPosition(-5.5, 0, 0);
+	listOfEntitys[4]->GetTransform()->SetPosition(5.5, 0, 0);
 }
 void Game::LoadLights()
 {
@@ -389,4 +501,76 @@ void Game::OnResize()
 	DXCore::OnResize();
 	//make sure we update our projection matrix when the screen resizes
 	camera->UpdateProjectionMatrix((float)this->width / this->height);
+}
+void Game::SetUpLightUI(Light& light, int index) {
+
+	//create the unique index for this gui object
+	std::string indexStr = std::to_string(index);
+
+	//have a name for this light tree
+	std::string nodeName = "Light " + indexStr;
+
+	//if the tree is open, or in other words, if this light is chosen, show its options
+	if (ImGui::TreeNode(nodeName.c_str()))
+	{
+		//give these buttons a unique id
+		std::string radioDirID = "Directional##" + indexStr;
+		std::string radioPointID = "Point##" + indexStr;
+
+		//if this button with this id is choosen
+		if (ImGui::RadioButton(radioDirID.c_str(), light.Type == LIGHT_TYPE_DIRECTIONAL))
+		{
+			//change light type to directional
+			light.Type = LIGHT_TYPE_DIRECTIONAL;
+		}
+		ImGui::SameLine();
+
+		//if this button with this id is chossen
+		if (ImGui::RadioButton(radioPointID.c_str(), light.Type == LIGHT_TYPE_POINT))
+		{
+			//change the light to a point light
+			light.Type = LIGHT_TYPE_POINT;
+		}
+		ImGui::SameLine();
+
+		// Direction
+		if (light.Type == LIGHT_TYPE_DIRECTIONAL)
+		{
+			std::string dirID = "Direction##" + indexStr;
+
+			//create a dragger for 3 floats that auto updates the direction
+			ImGui::DragFloat3(dirID.c_str(), &light.Direction.x, 0.1f);
+
+			// Normalize the direction
+			XMVECTOR dirNorm = XMVector3Normalize(XMLoadFloat3(&light.Direction));
+
+			//now actually change the lights direction with the newly normalized 3 floats
+			XMStoreFloat3(&light.Direction, dirNorm);
+		}
+
+		// Position & Range
+		if (light.Type == LIGHT_TYPE_POINT)
+		{
+			//create an id  for the position and create our dragger that lets up auto update the position
+			std::string posID = "Position##" + indexStr;
+			ImGui::DragFloat3(posID.c_str(), &light.Position.x, 0.1f);
+
+			//create an id  for the range and create our dragger that lets up auto update the range
+			std::string rangeID = "Range##" + indexStr;
+			ImGui::SliderFloat(rangeID.c_str(), &light.Range, 0.1f, 100.0f);
+		}
+
+
+		/// ///////////////////////////////////////////////////////////////////////////////////////////////////
+		/// ////////////////////////////////every light has these optionss//////////////////////////////////////////////
+		/// /// ///////////////////////////////////////////////////////////////////////////////////////////////////
+		std::string buttonID = "Color##" + indexStr;
+		ImGui::ColorEdit3(buttonID.c_str(), &light.Color.x);
+
+		std::string intenseID = "Intensity##" + indexStr;
+		ImGui::SliderFloat(intenseID.c_str(), &light.Intensity, 0.0f, 10.0f);
+
+		//close the tree
+		ImGui::TreePop();
+	}
 }

@@ -1,7 +1,9 @@
 #pragma once
 
 #include <Windows.h>
-
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_dx11.h"
+#include "imgui/imgui_impl_win32.h"
 class Input
 {
 #pragma region Singleton
@@ -65,7 +67,12 @@ public:
 	bool MouseMiddlePress();
 	bool MouseMiddleRelease();
 
+	void SetGuiKeyboardCapture(bool capture) { guiWantsKeyboard = capture; }
+	void SetGuiMouseCapture(bool capture) { guiWantsMouse = capture; }
+
 private:
+	bool guiWantsKeyboard;
+	bool guiWantsMouse;
 	// Arrays for the current and previous key states
 	unsigned char* kbState {0};
 	unsigned char* prevKbState {0};

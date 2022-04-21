@@ -21,6 +21,9 @@ public:
 	// will be called automatically
 	void Init();
 	void initImGui();
+	void makeImGui(float dt);
+	void SetUpLightUI(Light& light, int index);
+	void SetUpEntityUI(GameEntity* gameEntity, int index);
 	void Update(float deltaTime, float totalTime);
 	void Draw(float deltaTime, float totalTime);
 	//creating our 3 meshes for our shapes
@@ -66,6 +69,7 @@ private:
 	// Should we use vsync to limit the frame rate?
 	bool vsync;
 	float offset;
+	
 	// Initialization helper methods - feel free to customize, combine, etc.
 	void LoadShaders(); 
 	void CreateBasicGeometry();

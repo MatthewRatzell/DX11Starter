@@ -17,7 +17,7 @@ public:
 	void SetMaterial(std::shared_ptr<Material> mat);
 	std::shared_ptr<Material> GetMaterial();
 	Mesh* GetMesh();
-	Transform* getTransform();
+	Transform* GetTransform();
 private:
 	//fields
 	Transform entitysTransform;
