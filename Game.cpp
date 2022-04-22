@@ -69,10 +69,15 @@ Game::~Game()
 // --------------------------------------------------------
 void Game::Init()
 {
+
 	//gui
 	initImGui();
 	//load our shaders and connect them to their correct files
 	LoadShaders();
+
+	//set up what we need for our post process
+	ResizePostProcessResources();
+	CreatePostProcessSamplerState();
 
 	//this is where we set up our global shapes so square 
 	CreateBasicGeometry();
@@ -94,107 +99,7 @@ void Game::Init()
 	LoadLights();
 
 }
-void Game::makeImGui(float dt) {
 
-
-	//grab the jimmy jawn pizza from pizzi hut 
-	Input& input = Input::GetInstance();
-
-	input.SetGuiKeyboardCapture(false);
-	input.SetGuiMouseCapture(false);
-
-	ImGuiIO& io = ImGui::GetIO();
-	io.DeltaTime = dt;
-	io.DisplaySize.x = (float)this->width;
-	io.DisplaySize.y = (float)this->height;
-	io.KeyCtrl = input.KeyDown(VK_CONTROL);
-	io.KeyShift = input.KeyDown(VK_SHIFT);
-	io.KeyAlt = input.KeyDown(VK_MENU);
-	io.MousePos.x = (float)input.GetMouseX();
-	io.MousePos.y = (float)input.GetMouseY();
-	io.MouseDown[0] = input.MouseLeftDown();
-	io.MouseDown[1] = input.MouseRightDown();
-	io.MouseDown[2] = input.MouseMiddleDown();
-	io.MouseWheel = input.GetMouseWheel();
-	input.GetKeyArray(io.KeysDown, 256);
-	// Reset the frame
-	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
-	// Determine new input capture (you’ll uncomment later)
-	input.SetGuiKeyboardCapture(io.WantCaptureKeyboard);
-	input.SetGuiMouseCapture(io.WantCaptureMouse);
-
-	// Combined into a single window
-	ImGui::Begin("Debug");
-
-	//make a lights div
-	if (ImGui::CollapsingHeader("Lights"))
-	{
-		//go through the vector of lights and produce the UI and controls for each one
-		for (int i = 0; i < lights.size(); i++)
-		{
-			SetUpLightUI(lights[i], i);
-		}
-	}
-
-	// All scene entities
-	if (ImGui::CollapsingHeader("Entities"))
-	{
-
-		for (int i = 0; i < listOfEntitys.size(); i++)
-		{
-			SetUpEntityUI(listOfEntitys[i], i);
-		}
-	}
-
-	ImGui::End();
-
-}
-
-void Game::SetUpEntityUI(GameEntity* gameEntity, int index) {
-
-
-	std::string indexStr = std::to_string(index);
-
-	std::string nodeName = "Entity " + indexStr;
-
-	if (ImGui::TreeNode(nodeName.c_str()))
-	{
-		// Transform -----------------------
-		if (ImGui::CollapsingHeader("Transform"))
-		{
-			Transform* transform = gameEntity->GetTransform();
-
-			//grab their initial values so we can have our sliders start at the right value 
-			XMFLOAT3 pos = transform->GetPosition();
-			XMFLOAT3 rot = transform->GetRotation();
-			XMFLOAT3 scale = transform->GetScale();
-
-			//create three unique names so that our sliders all have a different name
-			std::string posID = "PositionOfEntity##" + indexStr;
-			std::string pyrID = "PitchYaWRollOfEntity##" + indexStr;
-			std::string scaleID = "ScaleOfEntity##" + indexStr;
-			//create position slider
-			if (ImGui::DragFloat3(posID.c_str(), &pos.x, 0.1f))
-			{
-				//make sure we actually set the position because this isnt lical
-				transform->SetPosition(pos.x, pos.y, pos.z);
-			}
-
-			if (ImGui::DragFloat3(pyrID.c_str(), &rot.x, 0.1f))
-			{
-				transform->SetRotation(rot.x, rot.y, rot.z);
-			}
-
-			if (ImGui::DragFloat3(scaleID.c_str(), &scale.x, 0.1f, 0.0f))
-			{
-				transform->SetScale(scale.x, scale.y, scale.z);
-			}
-		}
-		ImGui::TreePop();
-	}
-}
 // --------------------------------------------------------
 // Update your game here - user input, move objects, AI, etc.
 // --------------------------------------------------------
@@ -214,6 +119,8 @@ void Game::Update(float deltaTime, float totalTime)
 // --------------------------------------------------------
 void Game::Draw(float deltaTime, float totalTime)
 {
+	//make sure the first thing we do is prerender which will take  care of clearing our render states and buffer
+	PreRender();
 	///////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////Baic shader///////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
@@ -226,6 +133,7 @@ void Game::Draw(float deltaTime, float totalTime)
 	pixelShader2->SetData("lights", &lights[0], sizeof(Light) * (int)lights.size());
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+	/*
 	// Background color (Cornflower Blue in this case) for clearing
 	const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
 
@@ -238,9 +146,9 @@ void Game::Draw(float deltaTime, float totalTime)
 		D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
 		1.0f,
 		0);
+		*/
 
-
-	//loop through and draw our entitys
+		//loop through and draw our entitys
 	for (int i = 0; i < listOfEntitys.size(); i++) {
 		//going to pass this jawn over to our shader here because for some reason this doesnt belong in entity class but wouldnt it make more sense to pass the ambient color into the entity instead of creating a seperation of tasks that just doesnt make a whole lot of sense, Yeah i get it, this is probably a little less cpu power but im not sure if its worth the loss in coesive code
 		listOfEntitys[i]->GetMaterial()->GetPixelShader()->SetFloat3("ambient", ambientColor);
@@ -253,6 +161,9 @@ void Game::Draw(float deltaTime, float totalTime)
 		skyObj->Draw(context, camera);
 	}
 
+
+	//now that everything is done we can do our postprocessing
+	PostRender();
 	// Draw ImGui
 	ImGui::Render();
 	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
@@ -266,14 +177,13 @@ void Game::Draw(float deltaTime, float totalTime)
 	// the render target must be re-bound after every call to Present()
 	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), depthStencilView.Get());
 }
-// --------------------------------------------------------
-// Loads shaders from compiled shader object (.cso) files
-// and also created the Input Layout that describes our 
-// vertex data to the rendering pipeline. 
-// - Input Layout creation is done here because it must 
-//    be verified against vertex shader byte code
-// - We'll have that byte code already loaded below
-// --------------------------------------------------------
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////////////////////////////////Helper Functions///////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////
 void Game::initImGui()
 {
 	// Initialize ImGui
@@ -497,10 +407,12 @@ void Game::LoadLights()
 }
 void Game::OnResize()
 {
+
 	// Handle base-level DX resize stuff
 	DXCore::OnResize();
 	//make sure we update our projection matrix when the screen resizes
 	camera->UpdateProjectionMatrix((float)this->width / this->height);
+	ResizePostProcessResources();
 }
 void Game::SetUpLightUI(Light& light, int index) {
 
@@ -573,4 +485,215 @@ void Game::SetUpLightUI(Light& light, int index) {
 		//close the tree
 		ImGui::TreePop();
 	}
+}
+void Game::makeImGui(float dt) {
+
+
+	//grab the jimmy jawn pizza from pizzi hut 
+	Input& input = Input::GetInstance();
+
+	input.SetGuiKeyboardCapture(false);
+	input.SetGuiMouseCapture(false);
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.DeltaTime = dt;
+	io.DisplaySize.x = (float)this->width;
+	io.DisplaySize.y = (float)this->height;
+	io.KeyCtrl = input.KeyDown(VK_CONTROL);
+	io.KeyShift = input.KeyDown(VK_SHIFT);
+	io.KeyAlt = input.KeyDown(VK_MENU);
+	io.MousePos.x = (float)input.GetMouseX();
+	io.MousePos.y = (float)input.GetMouseY();
+	io.MouseDown[0] = input.MouseLeftDown();
+	io.MouseDown[1] = input.MouseRightDown();
+	io.MouseDown[2] = input.MouseMiddleDown();
+	io.MouseWheel = input.GetMouseWheel();
+	input.GetKeyArray(io.KeysDown, 256);
+	// Reset the frame
+	ImGui_ImplDX11_NewFrame();
+	ImGui_ImplWin32_NewFrame();
+	ImGui::NewFrame();
+	// Determine new input capture (you’ll uncomment later)
+	input.SetGuiKeyboardCapture(io.WantCaptureKeyboard);
+	input.SetGuiMouseCapture(io.WantCaptureMouse);
+
+	// Combined into a single window
+	ImGui::Begin("Debug");
+
+	//make a lights div
+	if (ImGui::CollapsingHeader("Lights"))
+	{
+		//go through the vector of lights and produce the UI and controls for each one
+		for (int i = 0; i < lights.size(); i++)
+		{
+			SetUpLightUI(lights[i], i);
+		}
+	}
+
+	// All scene entities
+	if (ImGui::CollapsingHeader("Entities"))
+	{
+
+		for (int i = 0; i < listOfEntitys.size(); i++)
+		{
+			SetUpEntityUI(listOfEntitys[i], i);
+		}
+	}
+
+	ImGui::End();
+
+}
+void Game::SetUpEntityUI(GameEntity* gameEntity, int index) {
+
+
+	std::string indexStr = std::to_string(index);
+
+	std::string nodeName = "Entity " + indexStr;
+
+	if (ImGui::TreeNode(nodeName.c_str()))
+	{
+		// Transform -----------------------
+		if (ImGui::CollapsingHeader("Transform"))
+		{
+			Transform* transform = gameEntity->GetTransform();
+
+			//grab their initial values so we can have our sliders start at the right value 
+			XMFLOAT3 pos = transform->GetPosition();
+			XMFLOAT3 rot = transform->GetRotation();
+			XMFLOAT3 scale = transform->GetScale();
+
+			//create three unique names so that our sliders all have a different name
+			std::string posID = "PositionOfEntity##" + indexStr;
+			std::string pyrID = "PitchYaWRollOfEntity##" + indexStr;
+			std::string scaleID = "ScaleOfEntity##" + indexStr;
+			//create position slider
+			if (ImGui::DragFloat3(posID.c_str(), &pos.x, 0.1f))
+			{
+				//make sure we actually set the position because this isnt lical
+				transform->SetPosition(pos.x, pos.y, pos.z);
+			}
+
+			if (ImGui::DragFloat3(pyrID.c_str(), &rot.x, 0.1f))
+			{
+				transform->SetRotation(rot.x, rot.y, rot.z);
+			}
+
+			if (ImGui::DragFloat3(scaleID.c_str(), &scale.x, 0.1f, 0.0f))
+			{
+				transform->SetScale(scale.x, scale.y, scale.z);
+			}
+		}
+		ImGui::TreePop();
+	}
+}
+void Game::DrawLight() {
+
+
+
+}
+//clears our rendered images and our depth stencil  view
+void Game::PreRender()
+{
+	// Background color for clearing
+	const float color[4] = { 0, 0, 0, 1 };
+
+	// Clear the render target and depth buffer (erases what's on the screen)
+	context->ClearRenderTargetView(backBufferRTV.Get(), color);
+	context->ClearDepthStencilView(depthStencilView.Get(), D3D11_CLEAR_DEPTH, 1.0f, 0);
+
+	// Clear all render targets, too
+	context->ClearRenderTargetView(ppRTV.Get(), color);
+
+	// Assume three render targets (since pixel shader is always returning 3 numbers)
+	ID3D11RenderTargetView* rtvs[1] =
+	{
+		backBufferRTV.Get(),
+	};
+
+
+	rtvs[0] = ppRTV.Get();
+
+	// Set all three
+	context->OMSetRenderTargets(1, rtvs, depthStencilView.Get());
+}
+//this is where we can handle all of the post processing at the moment we are only doing sobel filtering
+void Game::PostRender()
+{
+
+	std::shared_ptr<SimplePixelShader> sobelFilterPS = std::make_shared<SimplePixelShader>(device, context, GetFullPathTo_Wide(L"sobelFilterPS.cso").c_str());
+	std::shared_ptr<SimpleVertexShader> fullscreenVS = std::make_shared<SimpleVertexShader>(device, context, GetFullPathTo_Wide(L"fullscreenVS.cso").c_str());
+	// Set up post process shaders
+	fullscreenVS->SetShader();
+
+	//set all of the info our outlining pixel shader needs as well as passing it  to the pixel shader
+	sobelFilterPS->SetShader();
+	sobelFilterPS->SetShaderResourceView("pixels", ppSRV.Get());
+	sobelFilterPS->SetSamplerState("samplerOptions", clampSampler.Get());
+	sobelFilterPS->SetFloat("pixelWidth", 1.0f / width);
+	sobelFilterPS->SetFloat("pixelHeight", 1.0f / height);
+	sobelFilterPS->CopyAllBufferData();
+
+	// Draw exactly 3 vertices, which the special post-process vertex shader will
+	// "figure out" on the fly (resulting in our "full screen triangle")
+	context->Draw(3, 0);
+
+	// Unbind shader resource views at the end of the frame,
+	// since we'll be rendering into one of those textures
+	// at the start of the next
+	ID3D11ShaderResourceView* nullSRVs[128] = {};
+	context->PSSetShaderResources(0, ARRAYSIZE(nullSRVs), nullSRVs);
+}
+//need to change this because if our screen resizes the data requirements we have been sending the RTVs are wrong
+void Game::ResizePostProcessResources()
+{
+	// Reset all resources (releasing them)
+	ppRTV.Reset();
+	ppSRV.Reset();
+
+
+	// Describe our textures
+	D3D11_TEXTURE2D_DESC textureDesc = {};
+	textureDesc.Width = width;
+	textureDesc.Height = height;
+	textureDesc.ArraySize = 1;
+	textureDesc.BindFlags = D3D11_BIND_RENDER_TARGET | D3D11_BIND_SHADER_RESOURCE; // Will render to it and sample from it!
+	textureDesc.CPUAccessFlags = 0;
+	textureDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	textureDesc.MipLevels = 1;
+	textureDesc.MiscFlags = 0;
+	textureDesc.SampleDesc.Count = 1;
+	textureDesc.SampleDesc.Quality = 0;
+	textureDesc.Usage = D3D11_USAGE_DEFAULT;
+
+	// Create the color and normals textures
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> ppTexture;
+	device->CreateTexture2D(&textureDesc, 0, ppTexture.GetAddressOf());
+
+
+	// Create the Render Target Views (null descriptions use default settings)
+	device->CreateRenderTargetView(ppTexture.Get(), 0, ppRTV.GetAddressOf());
+
+	// Create the Shader Resource Views (null descriptions use default settings)
+	device->CreateShaderResourceView(ppTexture.Get(), 0, ppSRV.GetAddressOf());
+
+}
+//called on start up  to make sure we have the right sampler settings(same as  normal just had to activate clamping)
+void Game::CreatePostProcessSamplerState()
+{
+	// Create a sampler state for texture sampling options
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler;
+	D3D11_SAMPLER_DESC sampDesc = {};
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP; // What happens outside the 0-1 uv range?
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+	sampDesc.Filter = D3D11_FILTER_ANISOTROPIC;		// How do we handle sampling "between" pixels?
+	sampDesc.MaxAnisotropy = 16;
+	sampDesc.MaxLOD = D3D11_FLOAT32_MAX;
+	device->CreateSamplerState(&sampDesc, sampler.GetAddressOf());
+
+	// Create a second sampler for with clamp address mode
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+	device->CreateSamplerState(&sampDesc, clampSampler.GetAddressOf());
 }

@@ -24,6 +24,11 @@ public:
 	void makeImGui(float dt);
 	void SetUpLightUI(Light& light, int index);
 	void SetUpEntityUI(GameEntity* gameEntity, int index);
+	void DrawLight();
+	void PreRender();
+	void PostRender();
+	void ResizePostProcessResources();
+	void CreatePostProcessSamplerState();
 	void Update(float deltaTime, float totalTime);
 	void Draw(float deltaTime, float totalTime);
 	//creating our 3 meshes for our shapes
@@ -69,7 +74,13 @@ private:
 	// Should we use vsync to limit the frame rate?
 	bool vsync;
 	float offset;
-	
+	//for post processing
+	// General post processing resources
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> ppRTV;		// Allows us to render to a texture
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> ppSRV;		// Allows us to sample from the same texture
+
+	// Outline rendering --------------------------
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> clampSampler;
 	// Initialization helper methods - feel free to customize, combine, etc.
 	void LoadShaders(); 
 	void CreateBasicGeometry();

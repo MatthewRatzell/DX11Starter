@@ -65,7 +65,8 @@ protected:
 	Microsoft::WRL::ComPtr<ID3D11Device>		device;
 	Microsoft::WRL::ComPtr<ID3D11DeviceContext>	context;
 
-	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> backBufferRTV;
+	//our render target and our stencil view
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> backBufferRTV;//holds pixel information
 	Microsoft::WRL::ComPtr<ID3D11DepthStencilView> depthStencilView;
 
 	// Helper function for allocating a console window
