@@ -172,6 +172,9 @@
     <FxCompile Include="skyPS.hlsl">
       <Filter>Shaders\skybox</Filter>
     </FxCompile>
+    <FxCompile Include="ToonShadingPS.hlsl">
+      <Filter>Shaders</Filter>
+    </FxCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="ShaderIncludes.hlsli">

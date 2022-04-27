@@ -275,4 +275,80 @@ float3 CreatePointLightFancy(Light light, float3 normalizedNormals, float roughn
 
 	return (balancedDiff * colorTint + specularPhongLight) * attenuate * light.Intensity * light.Color;
 }
+
+float GetToonRampValue(float NdotL, Texture2D ramp, SamplerState toonSampler)
+{
+	float newNdotL = ramp.Sample(toonSampler, float2(NdotL, 0)).r;
+	//return the ramp texture's value at the given NdotL location
+	return ramp.Sample(toonSampler, float2(NdotL, 0)).r;
+
+	//if (newNdotL < 0.1f) return 0.0f;
+	//if (newNdotL < 0.45f) return 0.45f;
+	//if (newNdotL < 0.8f) return 0.8f;
+
+	//return 1.0f;
+}
+
+float3 CreateDirectionalLightToon(Light light, float3 normalizedNormals, float roughness, float3 colorTint, float3 cameraPosition, float3 worldPos, float3 specColor, Texture2D ramp, SamplerState toonSampler)
+{
+
+	///////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////direction/////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////
+	//make sure we negate the lights direction and normalize it for the diffuse function
+	float3 dirToLight = normalize(-light.Direction);
+	float3 viewVector = normalize(cameraPosition - worldPos);
+	float diffuse = Diffuse(normalizedNormals, dirToLight);
+	diffuse = GetToonRampValue(diffuse, ramp, toonSampler);
+	/////////////////////////////////////////////////////////////
+	/////////////////////////specular phong///////////////////////////////////////////////////
+	// 	   /////////////////////////////////////////////////////////////////////////////////////// 
+	//declare lighttyper
+	float specularPhongLight;
+	//specularPhongLight = (MicrofacetBRDF(normalizedNormals, dirToLight, viewVector, roughness, specColor));
+	specularPhongLight = 0;
+
+	//return the final light
+	float3 finalLight = (diffuse * colorTint + specularPhongLight) * light.Intensity * light.Color;
+	return finalLight;
+}
+
+float3 CreatePointLightToon(Light light, float3 normalizedNormals, float roughness, float3 colorTint, float3 cameraPosition, float3 worldPosition, float3 specColor, Texture2D ramp, SamplerState toonSampler)
+{
+	///////////////////////////////////////////////////////////////////////////////////////
+	////////////////////////diffuse/////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////
+	//get the direction to the light
+	float3 dirToLight = normalize(light.Position - worldPosition);
+	//calculate our diffuse
+	float diffuse = Diffuse(normalizedNormals, dirToLight);
+	diffuse = GetToonRampValue(diffuse, ramp, toonSampler);
+	/////////////////////////////////////////////////////////////
+	/////////////////////////specular phong///////////////////////////////////////////////////
+	// 	   /////////////////////////////////////////////////////////////////////////////////////// 
+	//declare lighttyper
+	float specularPhongLight;
+	//first lets get our specular component so we can craft our conditionals
+	float specExponent = (1.0f - roughness) * MAX_SPECULAR_EXPONENT;
+	//if shiny	
+	if (specExponent > .05)
+	{
+		float3 viewVector = normalize(cameraPosition - worldPosition);
+		//calculate incoming light direction
+		specularPhongLight = 0;
+	}
+	//if not
+	else
+	{
+		specularPhongLight = 0;
+	}
+	/////////////////////////////////////////////////////////////
+	/////////////////////////atten///////////////////////////////////////////////////
+	// 	   /////////////////////////////////////////////////////////////////////////////////////// 
+	float attenuate = Attenuate(light, worldPosition);
+
+
+	return (diffuse * colorTint + specularPhongLight) * attenuate * light.Intensity * light.Color;
+}
+
 #endif

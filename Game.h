@@ -54,6 +54,10 @@ private:
 
 	std::shared_ptr<SimpleVertexShader> vertexShaderSky;
 	std::shared_ptr<SimplePixelShader> pixelShaderSky;
+
+	std::shared_ptr<SimpleVertexShader> toonVertexShader;
+	std::shared_ptr<SimplePixelShader> toonPixelShader;
+
 	//materials
 	std::shared_ptr<Material> mat1;
 	std::shared_ptr<Material> mat2;
