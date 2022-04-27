@@ -619,7 +619,8 @@ void Game::PreRender()
 //this is where we can handle all of the post processing at the moment we are only doing sobel filtering
 void Game::PostRender()
 {
-
+	// Now that the scene is rendered, swap to the back buffer
+	context->OMSetRenderTargets(1, backBufferRTV.GetAddressOf(), 0);
 	std::shared_ptr<SimplePixelShader> sobelFilterPS = std::make_shared<SimplePixelShader>(device, context, GetFullPathTo_Wide(L"sobelFilterPS.cso").c_str());
 	std::shared_ptr<SimpleVertexShader> fullscreenVS = std::make_shared<SimpleVertexShader>(device, context, GetFullPathTo_Wide(L"fullscreenVS.cso").c_str());
 	// Set up post process shaders
