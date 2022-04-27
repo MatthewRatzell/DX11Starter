@@ -31,6 +31,9 @@
     <Filter Include="Source Files\imgui">
       <UniqueIdentifier>{efd18adf-0932-489b-b271-838042ea6685}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders\outlining">
+      <UniqueIdentifier>{46c338d5-803f-4638-81b4-bb5234f98ec8}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="DXCore.cpp">
@@ -174,6 +177,12 @@
     </FxCompile>
     <FxCompile Include="ToonShadingPS.hlsl">
       <Filter>Shaders</Filter>
+    </FxCompile>
+    <FxCompile Include="fullscreenVS.hlsl">
+      <Filter>Shaders\outlining</Filter>
+    </FxCompile>
+    <FxCompile Include="sobelFilterPS.hlsl">
+      <Filter>Shaders\outlining</Filter>
     </FxCompile>
   </ItemGroup>
   <ItemGroup>
