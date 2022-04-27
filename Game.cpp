@@ -225,12 +225,12 @@ void Game::CreateBasicGeometry()
 {
 	// Create some temporary variables to represent colors
 	// - Not necessary, just makes things more readable
-	shapeOne = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/sphere.obj").c_str(), device, context);
-	shapeTwo = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/torus.obj").c_str(), device, context);
-	shapeThree = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/cube.obj").c_str(), device, context);
-	shapeFour = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/cylinder.obj").c_str(), device, context);
-	shapeFive = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/helix.obj").c_str(), device, context);
-	shapeSix = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/quad.obj").c_str(), device, context);
+	sphere = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/sphere.obj").c_str(), device, context);
+	torus = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/torus.obj").c_str(), device, context);
+	cube = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/cube.obj").c_str(), device, context);
+	cylinder = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/cylinder.obj").c_str(), device, context);
+	helix = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/helix.obj").c_str(), device, context);
+	quad = std::make_shared<Mesh>(GetFullPathTo("../../Assets/Models/quad.obj").c_str(), device, context);
 
 
 }
@@ -422,30 +422,33 @@ void Game::LoadTexturesSRVsAndSampler()
 	mat2->AddTextureSRV("MetalnessMap", floorMetal);
 
 	//make sky
-	skyObj = std::make_shared<Sky>(device, sampler2, skyMap, shapeThree, vertexShaderSky, pixelShaderSky);
+	skyObj = std::make_shared<Sky>(device, sampler2, skyMap, cube, vertexShaderSky, pixelShaderSky);
 }
 void Game::CreateEntitys()
 {
 	//creating our 5 entitys
-	GameEntity* entityOne = new GameEntity(shapeOne.get(), grassMat);
-	GameEntity* entityTwo = new GameEntity(shapeTwo.get(), cactusMat);
-	GameEntity* entityThree = new  GameEntity(shapeThree.get(), rockMat);
-	GameEntity* entityFour = new GameEntity(shapeFour.get(), rockMatTwo);
-	GameEntity* entityFive = new GameEntity(shapeFive.get(), groundMat);
-
+	GameEntity* sphereEntity = new GameEntity(sphere.get(), grassMat);
+	GameEntity* torusEntity = new GameEntity(torus.get(), cactusMat);
+	GameEntity* cubeEntity = new  GameEntity(cube.get(), rockMat);
+	GameEntity* cylinderEntity = new GameEntity(cylinder.get(), rockMatTwo);
+	GameEntity* helixEntity = new GameEntity(helix.get(), groundMat);
+	GameEntity* quadEntity = new GameEntity(quad.get(), groundMat);
 	//pushing entitys to list
-	listOfEntitys.push_back(entityOne);
-	listOfEntitys.push_back(entityTwo);
-	listOfEntitys.push_back(entityThree);
-	listOfEntitys.push_back(entityFour);
-	listOfEntitys.push_back(entityFive);
-
+	listOfEntitys.push_back(sphereEntity);
+	listOfEntitys.push_back(torusEntity);
+	listOfEntitys.push_back(cubeEntity);
+	listOfEntitys.push_back(cylinderEntity);
+	listOfEntitys.push_back(helixEntity);
+	listOfEntitys.push_back(quadEntity);
+	/////////////////////////////////
 	//making sure we put them in a good spot
 	listOfEntitys[0]->GetTransform()->SetPosition(0, 0, 0);
 	listOfEntitys[1]->GetTransform()->SetPosition(-2.5, 0, 0);
 	listOfEntitys[2]->GetTransform()->SetPosition(2.5, 0, 0);
 	listOfEntitys[3]->GetTransform()->SetPosition(-5.5, 0, 0);
-	listOfEntitys[4]->GetTransform()->SetPosition(5.5, 0, 0);
+	listOfEntitys[4]->GetTransform()->SetPosition(7.5, 0, 0);
+	listOfEntitys[5]->GetTransform()->SetPosition(7.5, 0, 0);
+	/////////////////////////////////
 }
 void Game::LoadLights()
 {
@@ -486,8 +489,8 @@ void Game::LoadLights()
 	pointLight1.Range = 10.0f;
 	pointLight2.Range = 5.0f;
 	lights.push_back(dirLight1);
-	lights.push_back(dirLight2);
-	lights.push_back(dirLight3);
+	//lights.push_back(dirLight2);
+	//lights.push_back(dirLight3);
 	//lights.push_back(pointLight1);
 	//lights.push_back(pointLight2);
 }

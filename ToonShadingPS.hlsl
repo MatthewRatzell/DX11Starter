@@ -1,6 +1,6 @@
 #include "ShaderIncludes.hlsli" 
 #include "Lighting.hlsli"
-#define NUM_LIGHTS 3
+#define NUM_LIGHTS 1
 
 cbuffer ExternalData : register(b0)
 {
@@ -20,7 +20,7 @@ SamplerState ToonRampSampler : register(s1);
 
 //=============================================================================
 //uvs scaled by 4
-float4 main(VertexToPixelNormalMapping input) : SV_TARGET
+float4 main(VertexToPixel input) : SV_TARGET
 {
 	///////////////////////////////////////////////////////////////////////////////
 	////////////////////////normal/////////////////////////////////////////////

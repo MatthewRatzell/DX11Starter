@@ -39,12 +39,12 @@ private:
 	std::vector<GameEntity*> listOfEntitys;
 	//entity
 	//shapes and meshes
-	std::shared_ptr<Mesh> shapeOne;
-	std::shared_ptr<Mesh> shapeTwo;
-	std::shared_ptr<Mesh> shapeThree;
-	std::shared_ptr<Mesh> shapeFour;
-	std::shared_ptr<Mesh> shapeFive;
-	std::shared_ptr<Mesh> shapeSix;
+	std::shared_ptr<Mesh> sphere;
+	std::shared_ptr<Mesh> torus;
+	std::shared_ptr<Mesh> cube;
+	std::shared_ptr<Mesh> cylinder;
+	std::shared_ptr<Mesh> helix;
+	std::shared_ptr<Mesh> quad;
 	//transform
 	Transform transform;
 	//camera
