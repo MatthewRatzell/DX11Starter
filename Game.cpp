@@ -133,6 +133,11 @@ void Game::Draw(float deltaTime, float totalTime)
 	pixelShader2->SetData("lights", &lights[0], sizeof(Light) * (int)lights.size());
 	///////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////
+
+	//
+	//Give the toon pixel shader lights
+	toonPixelShader->SetData("lights", &lights[0], sizeof(Light) * (int)lights.size());
+
 	/*
 	// Background color (Cornflower Blue in this case) for clearing
 	const float color[4] = { 0.4f, 0.6f, 0.75f, 0.0f };
@@ -209,6 +214,9 @@ void Game::LoadShaders()
 	pixelShader2 = std::make_shared<SimplePixelShader>(device, context, GetFullPathTo_Wide(L"CustomPS.cso").c_str());
 	vertexShaderNM = std::make_shared<SimpleVertexShader>(device, context, GetFullPathTo_Wide(L"VertexShaderNM.cso").c_str());
 
+	toonPixelShader = std::make_shared<SimplePixelShader>(device, context, GetFullPathTo_Wide(L"ToonShadingPS.cso").c_str());
+	toonVertexShader = std::make_shared<SimpleVertexShader>(device, context, GetFullPathTo_Wide(L"VertexShaderNM.cso").c_str());
+
 }
 // --------------------------------------------------------
 // Creates the geometry we're going to draw - a single triangle for now
@@ -244,6 +252,13 @@ void Game::LoadTexturesSRVsAndSampler()
 	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler2;
 	device->CreateSamplerState(&sampDesc, sampler2.GetAddressOf());
 
+	sampDesc.AddressU = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.AddressV = D3D11_TEXTURE_ADDRESS_CLAMP;
+	sampDesc.AddressW = D3D11_TEXTURE_ADDRESS_CLAMP;
+
+	Microsoft::WRL::ComPtr<ID3D11SamplerState> sampler3;
+	device->CreateSamplerState(&sampDesc, sampler3.GetAddressOf());
+
 	//skymap
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> skyMap;
 
@@ -268,6 +283,10 @@ void Game::LoadTexturesSRVsAndSampler()
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> floorNormals;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> floorRoughness;
 
+	//toon shading
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rampTexture;
+
+
 	//setting the sky SRV to its texture
 	CreateDDSTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/BrightSky.dds").c_str(), 0, skyMap.GetAddressOf());
 	//setting PBR SRVs to their textures
@@ -291,6 +310,9 @@ void Game::LoadTexturesSRVsAndSampler()
 	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/PBR/floor_normals.png").c_str(), 0, floorNormals.GetAddressOf());
 	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/PBR/floor_roughness.png").c_str(), 0, floorRoughness.GetAddressOf());
 
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/RampTexture.png").c_str(), 0, rampTexture.GetAddressOf());
+
+
 
 
 	mat1 = std::make_shared<Material>(vertexShader, pixelShader, XMFLOAT3(1, 1, 1), .9f);
@@ -298,7 +320,7 @@ void Game::LoadTexturesSRVsAndSampler()
 	mat2 = std::make_shared<Material>(vertexShaderNM, pixelShader2, XMFLOAT3(1, 1, 1), 1.0f);
 	mat3 = std::make_shared<Material>(vertexShaderNM, pixelShader2, XMFLOAT3(1, 1, 1), 1.0f);
 
-	mat4 = std::make_shared<Material>(vertexShaderNM, pixelShader2, XMFLOAT3(1, 1, 1), 1.0f);
+	mat4 = std::make_shared<Material>(vertexShaderNM, toonPixelShader, XMFLOAT3(1, 1, 1), 1.0f);
 	mat5 = std::make_shared<Material>(vertexShaderNM, pixelShader2, XMFLOAT3(1, 1, 1), 1.0f);
 
 	/*
@@ -309,10 +331,11 @@ void Game::LoadTexturesSRVsAndSampler()
 
 	//set these up to use our new PBRs
 	mat4->AddSampler("BasicSampler", sampler2);
+	mat4->AddSampler("ToonRampSampler", sampler3);
 	mat4->AddTextureSRV("Albedo", woodAlbedo);
 	mat4->AddTextureSRV("NormalMap", woodNormals);
 	mat4->AddTextureSRV("RoughnessMap", woodRoughness);
-	mat4->AddTextureSRV("MetalnessMap", woodMetal);
+	mat4->AddTextureSRV("ToonRamp", rampTexture);
 
 	//set these up to use our new PBRs
 	mat5->AddSampler("BasicSampler", sampler);
@@ -342,10 +365,10 @@ void Game::CreateEntitys()
 {
 	//creating our 5 entitys
 	GameEntity* entityOne = new GameEntity(shapeOne.get(), mat4);
-	GameEntity* entityTwo = new GameEntity(shapeTwo.get(), mat5);
-	GameEntity* entityThree = new  GameEntity(shapeThree.get(), mat3);
-	GameEntity* entityFour = new GameEntity(shapeFour.get(), mat2);
-	GameEntity* entityFive = new GameEntity(shapeFive.get(), mat3);
+	GameEntity* entityTwo = new GameEntity(shapeTwo.get(), mat4);
+	GameEntity* entityThree = new  GameEntity(shapeThree.get(), mat4);
+	GameEntity* entityFour = new GameEntity(shapeFour.get(), mat4);
+	GameEntity* entityFive = new GameEntity(shapeFive.get(), mat4);
 
 	//pushing entitys to list
 	listOfEntitys.push_back(entityOne);
@@ -513,7 +536,7 @@ void Game::makeImGui(float dt) {
 	ImGui_ImplDX11_NewFrame();
 	ImGui_ImplWin32_NewFrame();
 	ImGui::NewFrame();
-	// Determine new input capture (you’ll uncomment later)
+	// Determine new input capture (youÂ’ll uncomment later)
 	input.SetGuiKeyboardCapture(io.WantCaptureKeyboard);
 	input.SetGuiMouseCapture(io.WantCaptureMouse);
 
