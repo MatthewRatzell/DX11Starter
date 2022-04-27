@@ -70,6 +70,13 @@ private:
 	std::shared_ptr<Material> mat4;
 	std::shared_ptr<Material> mat5;
 	std::shared_ptr<Material> matSky;
+
+	std::shared_ptr<Material> grassMat;
+	std::shared_ptr<Material> cactusMat;
+	std::shared_ptr<Material> groundMat;
+	std::shared_ptr<Material> rockMat;
+	std::shared_ptr<Material> rockMatTwo;
+
 	//lights and light data
 	XMFLOAT3 ambientColor;
 	std::vector<Light> lights;

@@ -286,6 +286,21 @@ void Game::LoadTexturesSRVsAndSampler()
 	//toon shading
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rampTexture;
 
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cactusAlbedo;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> cactusNormals;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> grassAlbedo;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> grassNormals;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rockAlbedo;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rockNormals;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rockTwoAlbedo;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> rockTwoNormals;
+
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> groundAlbedo;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> groundNormals;
+
 
 	//setting the sky SRV to its texture
 	CreateDDSTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/BrightSky.dds").c_str(), 0, skyMap.GetAddressOf());
@@ -312,8 +327,20 @@ void Game::LoadTexturesSRVsAndSampler()
 
 	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/RampTexture.png").c_str(), 0, rampTexture.GetAddressOf());
 
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/GrassTexture.png").c_str(), 0, grassAlbedo.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/GrassTexture.png").c_str(), 0, grassNormals.GetAddressOf());
 
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/RockTexture.png").c_str(), 0, rockAlbedo.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/RockTexture.png").c_str(), 0, rockNormals.GetAddressOf());
 
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/RockTextureTwo.png").c_str(), 0, rockTwoAlbedo.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/RockTextureTwo.png").c_str(), 0, rockTwoNormals.GetAddressOf());
+
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/GroundTexture.png").c_str(), 0, groundAlbedo.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/GroundTexture.png").c_str(), 0, groundNormals.GetAddressOf());
+
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/CactusTexture.png").c_str(), 0, cactusAlbedo.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/CactusTexture.png").c_str(), 0, cactusNormals.GetAddressOf());
 
 	mat1 = std::make_shared<Material>(vertexShader, pixelShader, XMFLOAT3(1, 1, 1), .9f);
 
@@ -323,11 +350,47 @@ void Game::LoadTexturesSRVsAndSampler()
 	mat4 = std::make_shared<Material>(vertexShaderNM, toonPixelShader, XMFLOAT3(1, 1, 1), 1.0f);
 	mat5 = std::make_shared<Material>(vertexShaderNM, pixelShader2, XMFLOAT3(1, 1, 1), 1.0f);
 
+	grassMat = std::make_shared<Material>(vertexShader, toonPixelShader, XMFLOAT3(1, 1, 1), .9f);
+	cactusMat = std::make_shared<Material>(vertexShader, toonPixelShader, XMFLOAT3(1, 1, 1), .9f);
+	groundMat = std::make_shared<Material>(vertexShader, toonPixelShader, XMFLOAT3(1, 1, 1), .9f);
+	rockMat = std::make_shared<Material>(vertexShader, toonPixelShader, XMFLOAT3(1, 1, 1), .9f);
+	rockMatTwo = std::make_shared<Material>(vertexShader, toonPixelShader, XMFLOAT3(1, 1, 1), .9f);
+
 	/*
 	//set the resources for this material
 	mat1->AddTextureSRV("SurfaceTexture", rock);//rock
 	mat1->AddSampler("BasicSampler", sampler);
 	*/
+
+	grassMat->AddSampler("BasicSampler", sampler2);
+	grassMat->AddSampler("ToonRampSampler", sampler3);
+	grassMat->AddTextureSRV("Albedo", grassAlbedo);
+	grassMat->AddTextureSRV("NormalMap", grassNormals);
+	grassMat->AddTextureSRV("ToonRamp", rampTexture);
+
+	cactusMat->AddSampler("BasicSampler", sampler2);
+	cactusMat->AddSampler("ToonRampSampler", sampler3);
+	cactusMat->AddTextureSRV("Albedo", cactusAlbedo);
+	cactusMat->AddTextureSRV("NormalMap", cactusNormals);
+	cactusMat->AddTextureSRV("ToonRamp", rampTexture);
+
+	rockMat->AddSampler("BasicSampler", sampler2);
+	rockMat->AddSampler("ToonRampSampler", sampler3);
+	rockMat->AddTextureSRV("Albedo", rockAlbedo);
+	rockMat->AddTextureSRV("NormalMap", rockNormals);
+	rockMat->AddTextureSRV("ToonRamp", rampTexture);
+
+	rockMatTwo->AddSampler("BasicSampler", sampler2);
+	rockMatTwo->AddSampler("ToonRampSampler", sampler3);
+	rockMatTwo->AddTextureSRV("Albedo", rockTwoAlbedo);
+	rockMatTwo->AddTextureSRV("NormalMap", rockTwoNormals);
+	rockMatTwo->AddTextureSRV("ToonRamp", rampTexture);
+
+	groundMat->AddSampler("BasicSampler", sampler2);
+	groundMat->AddSampler("ToonRampSampler", sampler3);
+	groundMat->AddTextureSRV("Albedo", groundAlbedo);
+	groundMat->AddTextureSRV("NormalMap", groundNormals);
+	groundMat->AddTextureSRV("ToonRamp", rampTexture);
 
 	//set these up to use our new PBRs
 	mat4->AddSampler("BasicSampler", sampler2);
@@ -364,11 +427,11 @@ void Game::LoadTexturesSRVsAndSampler()
 void Game::CreateEntitys()
 {
 	//creating our 5 entitys
-	GameEntity* entityOne = new GameEntity(shapeOne.get(), mat4);
-	GameEntity* entityTwo = new GameEntity(shapeTwo.get(), mat4);
-	GameEntity* entityThree = new  GameEntity(shapeThree.get(), mat4);
-	GameEntity* entityFour = new GameEntity(shapeFour.get(), mat4);
-	GameEntity* entityFive = new GameEntity(shapeFive.get(), mat4);
+	GameEntity* entityOne = new GameEntity(shapeOne.get(), grassMat);
+	GameEntity* entityTwo = new GameEntity(shapeTwo.get(), cactusMat);
+	GameEntity* entityThree = new  GameEntity(shapeThree.get(), rockMat);
+	GameEntity* entityFour = new GameEntity(shapeFour.get(), rockMatTwo);
+	GameEntity* entityFive = new GameEntity(shapeFive.get(), groundMat);
 
 	//pushing entitys to list
 	listOfEntitys.push_back(entityOne);
