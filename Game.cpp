@@ -301,6 +301,9 @@ void Game::LoadTexturesSRVsAndSampler()
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> groundAlbedo;
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> groundNormals;
 
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodToonAlbedo;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> woodToonNormals;
+
 
 	//setting the sky SRV to its texture
 	CreateDDSTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/BrightSky.dds").c_str(), 0, skyMap.GetAddressOf());
@@ -342,6 +345,9 @@ void Game::LoadTexturesSRVsAndSampler()
 	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/CactusTexture.png").c_str(), 0, cactusAlbedo.GetAddressOf());
 	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/CactusTexture.png").c_str(), 0, cactusNormals.GetAddressOf());
 
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/WoodTexture.png").c_str(), 0, woodToonAlbedo.GetAddressOf());
+	CreateWICTextureFromFile(device.Get(), context.Get(), GetFullPathTo_Wide(L"../../Assets/Textures/Toon/WoodTexture.png").c_str(), 0, woodToonNormals.GetAddressOf());
+
 	mat1 = std::make_shared<Material>(vertexShader, pixelShader, XMFLOAT3(1, 1, 1), .9f);
 
 	mat2 = std::make_shared<Material>(vertexShaderNM, pixelShader2, XMFLOAT3(1, 1, 1), 1.0f);
@@ -355,6 +361,7 @@ void Game::LoadTexturesSRVsAndSampler()
 	groundMat = std::make_shared<Material>(vertexShader, toonPixelShader, XMFLOAT3(1, 1, 1), .9f);
 	rockMat = std::make_shared<Material>(vertexShader, toonPixelShader, XMFLOAT3(1, 1, 1), .9f);
 	rockMatTwo = std::make_shared<Material>(vertexShader, toonPixelShader, XMFLOAT3(1, 1, 1), .9f);
+	woodMat = std::make_shared<Material>(vertexShader, toonPixelShader, XMFLOAT3(1, 1, 1), 0.9f);
 
 	/*
 	//set the resources for this material
@@ -391,6 +398,12 @@ void Game::LoadTexturesSRVsAndSampler()
 	groundMat->AddTextureSRV("Albedo", groundAlbedo);
 	groundMat->AddTextureSRV("NormalMap", groundNormals);
 	groundMat->AddTextureSRV("ToonRamp", rampTexture);
+
+	woodMat->AddSampler("BasicSampler", sampler2);
+	woodMat->AddSampler("ToonRampSampler", sampler3);
+	woodMat->AddTextureSRV("Albedo", woodToonAlbedo);
+	woodMat->AddTextureSRV("NormalMap", woodToonNormals);
+	woodMat->AddTextureSRV("ToonRamp", rampTexture);
 
 	//set these up to use our new PBRs
 	mat4->AddSampler("BasicSampler", sampler2);
@@ -433,6 +446,23 @@ void Game::CreateEntitys()
 	GameEntity* cylinderEntity = new GameEntity(cylinder.get(), rockMatTwo);
 	GameEntity* helixEntity = new GameEntity(helix.get(), groundMat);
 	GameEntity* quadEntity = new GameEntity(quad.get(), groundMat);
+
+	//create the target
+	GameEntity* targetFace = new GameEntity(cylinder.get(), woodMat);
+	GameEntity* targetLegLeft = new GameEntity(cylinder.get(), woodMat);
+	GameEntity* targetLegRight = new GameEntity(cylinder.get(), woodMat);
+
+	//create the "building"
+	GameEntity* roof = new GameEntity(cube.get(), woodMat);
+	GameEntity* frontLeft = new GameEntity(cube.get(), woodMat);
+	GameEntity* frontRight = new GameEntity(cube.get(), woodMat);
+	GameEntity* backLeft = new GameEntity(cube.get(), woodMat);
+	GameEntity* backRight = new GameEntity(cube.get(), woodMat);
+
+	//create the barrier for the building
+	GameEntity* support = new GameEntity(cube.get(), woodMat);
+	GameEntity* counter = new GameEntity(cube.get(), woodMat);
+
 	//pushing entitys to list
 	listOfEntitys.push_back(sphereEntity);
 	listOfEntitys.push_back(torusEntity);
@@ -440,14 +470,141 @@ void Game::CreateEntitys()
 	listOfEntitys.push_back(cylinderEntity);
 	listOfEntitys.push_back(helixEntity);
 	listOfEntitys.push_back(quadEntity);
+	listOfEntitys.push_back(targetFace);
+	listOfEntitys.push_back(targetLegLeft);
+	listOfEntitys.push_back(targetLegRight);
+	listOfEntitys.push_back(roof);
+	listOfEntitys.push_back(frontLeft);
+	listOfEntitys.push_back(frontRight);
+	listOfEntitys.push_back(backLeft);
+	listOfEntitys.push_back(backRight);
+	listOfEntitys.push_back(support);
+	listOfEntitys.push_back(counter);
+
+	//randomly spawn in 100 blades of grass around the map
+	for (int i = 0; i < 100; i++)
+	{
+		GameEntity* grassEntity = new  GameEntity(cube.get(), grassMat);
+
+		//gets a random value between -50 and 50
+		int xVal = rand() % 100 - 50;
+		int zVal = rand() % 100 - 50;
+
+		grassEntity->GetTransform()->SetPosition(xVal, -0.5, zVal);
+		grassEntity->GetTransform()->SetRotation(0, 0, 0);
+		grassEntity->GetTransform()->SetScale(0.01, 0.3, 0.01);
+
+		listOfEntitys.push_back(grassEntity);
+
+	}
+
+	//randomly spawn in 50 cacti
+	for (int i = 0; i < 50; i++)
+	{
+		GameEntity* grassEntity = new  GameEntity(sphere.get(), cactusMat);
+
+		//gets a random value between -50 and 50
+		int xVal = rand() % 100 - 50;
+		int zVal = rand() % 100 - 50;
+
+		int randomNum = rand() % 100;
+		float scaleVal = 0.75;
+
+		//add some variation to the cacti
+		if (randomNum > 50)
+		{
+			scaleVal = 1;
+		}
+
+		grassEntity->GetTransform()->SetPosition(xVal, 0, zVal);
+		grassEntity->GetTransform()->SetRotation(0, 0, 0);
+		grassEntity->GetTransform()->SetScale(0.5, scaleVal, 0.5);
+
+		listOfEntitys.push_back(grassEntity);
+	}
+
+	//randomly spawn 25 rocks
+	for (int i = 0; i < 50; i++)
+	{
+
+		int randomNum = rand() % 100;
+
+		GameEntity* rockEntity;
+		
+		//add some diversity to the rock color
+		if (randomNum > 50)
+		{
+			rockEntity = new GameEntity(cube.get(), rockMat);
+		}
+		else {
+			rockEntity = new GameEntity(cube.get(), rockMatTwo);
+		}
+
+		//gets a random value between -50 and 50
+		int xVal = rand() % 100 - 50;
+		int zVal = rand() % 100 - 50;
+		
+		int scaleVal = 0.85;
+
+		//add some variation to the cacti
+		if (randomNum > 50)
+		{
+			scaleVal = 1.75;
+		}
+
+		rockEntity->GetTransform()->SetPosition(xVal, -0.5, zVal);
+		rockEntity->GetTransform()->SetRotation(zVal, (zVal + xVal) / 2, xVal);
+		rockEntity->GetTransform()->SetScale(1, 1, 1.25);
+
+		listOfEntitys.push_back(rockEntity);
+	}
+
 	/////////////////////////////////
 	//making sure we put them in a good spot
-	listOfEntitys[0]->GetTransform()->SetPosition(0, 0, 0);
-	listOfEntitys[1]->GetTransform()->SetPosition(-2.5, 0, 0);
-	listOfEntitys[2]->GetTransform()->SetPosition(2.5, 0, 0);
-	listOfEntitys[3]->GetTransform()->SetPosition(-5.5, 0, 0);
-	listOfEntitys[4]->GetTransform()->SetPosition(7.5, 0, 0);
-	listOfEntitys[5]->GetTransform()->SetPosition(7.5, 0, 0);
+	listOfEntitys[0]->GetTransform()->SetPosition(0, -10, 0);
+	listOfEntitys[1]->GetTransform()->SetPosition(-2.5, -10, 0);
+	listOfEntitys[2]->GetTransform()->SetPosition(2.5, -10, 0);
+	listOfEntitys[3]->GetTransform()->SetPosition(-5.5, -10, 0);
+	listOfEntitys[4]->GetTransform()->SetPosition(7.5, -10, 0);
+	listOfEntitys[5]->GetTransform()->SetPosition(0, -0.5, 0);
+	listOfEntitys[5]->GetTransform()->SetScale(100, 0, 100);
+
+	//position the target
+	targetFace->GetTransform()->SetPosition(0, 1, 6);
+	targetFace->GetTransform()->SetRotation(90, 0, 0);
+	targetFace->GetTransform()->SetScale(1, 0.25, 1);
+
+	targetLegLeft->GetTransform()->SetPosition(-0.5, 0, 6);
+	targetLegLeft->GetTransform()->SetRotation(0, 0, 0);
+	targetLegLeft->GetTransform()->SetScale(0.1, 1, 0.1);
+
+	targetLegRight->GetTransform()->SetPosition(0.5, 0, 6);
+	targetLegRight->GetTransform()->SetRotation(0, 0, 0);
+	targetLegRight->GetTransform()->SetScale(0.1, 1, 0.1);
+
+	//position the building
+	roof->GetTransform()->SetPosition(0, 5, 0);
+	roof->GetTransform()->SetScale(5, 0.1, 10);
+
+	frontLeft->GetTransform()->SetPosition(4, 0, 9);
+	frontLeft->GetTransform()->SetScale(0.15, 5, 0.15);
+
+	frontRight->GetTransform()->SetPosition(-4, 0, 9);
+	frontRight->GetTransform()->SetScale(0.15, 5, 0.15);
+
+	backLeft->GetTransform()->SetPosition(4, 0, -9);
+	backLeft->GetTransform()->SetScale(0.15, 5, 0.15);
+
+	backRight->GetTransform()->SetPosition(-4, 0, -9);
+	backRight->GetTransform()->SetScale(0.15, 5, 0.15);
+
+	//position the barrier
+	support->GetTransform()->SetPosition(0, 0, -7.5);
+	support->GetTransform()->SetScale(4, 0.75, 0.25);
+
+	counter->GetTransform()->SetPosition(0, 0.5, -7.5);
+	counter->GetTransform()->SetScale(4.5, 0.15, 0.5);
+
 	/////////////////////////////////
 }
 void Game::LoadLights()
@@ -467,7 +624,7 @@ void Game::LoadLights()
 	pointLight1.Type = 1;
 	pointLight2.Type = 1;
 	//pointing right
-	dirLight1.Direction = XMFLOAT3(1, 1, 0);
+	dirLight1.Direction = XMFLOAT3(1, -0.5, 1);
 	dirLight2.Direction = XMFLOAT3(-1, -0.25f, 0);
 	dirLight3.Direction = XMFLOAT3(1, -1, 1);
 	/// /////color////////////////

@@ -76,6 +76,7 @@ private:
 	std::shared_ptr<Material> groundMat;
 	std::shared_ptr<Material> rockMat;
 	std::shared_ptr<Material> rockMatTwo;
+	std::shared_ptr<Material> woodMat;
 
 	//lights and light data
 	XMFLOAT3 ambientColor;
